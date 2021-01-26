@@ -1,0 +1,51 @@
+
+import astropy
+from astropy.io import fits as asf
+import glob
+import os
+import sys
+from datetime import datetime as dt
+
+def crop(arr, x_start=0, x_end=-1, y_start=0, y_end=-1):
+    return arr[y_start:y_end, x_start:x_end]
+
+home=os.path.expanduser("~")
+
+path=home+"/Parth/Python/IBAC_RG/Data/Sample/"
+print("\nThe current path to the data directory is:"+path+" (You can change this in the code, line 16)")
+truce=input("Is the path correct? [y|n]")
+if truce=='':
+    truce='y'
+if truce=="n":
+    path=input("Please specify the full path to the data directory:")
+    truce='y'
+if truce!='y':
+    sys.exit("Invalid choice.")
+if path[-1]!="/":
+    path+="/"
+    
+file_list=glob.glob(path+"Bias/bias*.fits")+glob.glob(path+"Flat/flat*.fits")+glob.glob(path+"Obj/*.fits")
+#file_list=["/home/parth/Parth/Python/IBAC_RG/Data/Sample/Flat/flat_R.4565.0.fits"]
+for file in file_list:
+    print(file)
+    hdul=asf.open(file, mode='update')
+    hdr=hdul[0].header
+    if "COMMENTS" in hdr.keys():
+        if hdr["COMMENTS"]=="Cropped":
+            print("Already cropped.")
+            continue
+        else:
+            print("Cropping image...")
+    else:
+        print("Cropping image...")
+    arr=hdul[0].data
+    arr=crop(arr, x_start=64, x_end=2106)
+    hdul[0].data=arr
+    comm="Image cropped on "+str(dt.today().date())
+    hdr["COMMENTS"]=("Cropped", comm)
+    hdul[0].header=hdr
+    hdul.flush()
+    
+    hdul.close()
+    
+print("Crop successful!")
